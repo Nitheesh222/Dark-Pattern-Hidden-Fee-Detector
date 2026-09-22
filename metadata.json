@@ -1,0 +1,6 @@
+{
+  "name": "DeceptiWatch - Dark Pattern & Hidden Fee Detector",
+  "description": "AI-powered consumer reporting portal and community-voted index exposing deceptive UI layouts, sneaky prechecked boxes, and hidden recurring fees.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
