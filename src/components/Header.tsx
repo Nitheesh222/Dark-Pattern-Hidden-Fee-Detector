@@ -67,10 +67,10 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <nav className="flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/80 p-1">
+        <nav className="flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/80 p-1" aria-label="Main navigation">
           <button
             id="nav-scanner-btn"
-            onClick={() => setActiveTab('scanner')}
+            aria-current={activeTab === 'scanner' ? 'page' : undefined}
             className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
               activeTab === 'scanner'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             id="nav-hall-of-shame-btn"
-            onClick={() => setActiveTab('hall-of-shame')}
+            aria-current={activeTab === 'hall-of-shame' ? 'page' : undefined}
             className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
               activeTab === 'hall-of-shame'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             id="nav-deception-lab-btn"
-            onClick={() => setActiveTab('deception-lab')}
+            aria-current={activeTab === 'deception-lab' ? 'page' : undefined}
             className={`hidden md:flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
               activeTab === 'deception-lab'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             id="nav-calculator-btn"
-            onClick={() => setActiveTab('calculator')}
+            aria-current={activeTab === 'calculator' ? 'page' : undefined}
             className={`hidden sm:flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
               activeTab === 'calculator'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -127,6 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Button: Report Deceptive Layout */}
         <div className="flex items-center gap-2">
           <button
+            aria-label="Report a deceptive website"
             id="report-deceptive-site-btn"
             onClick={onOpenReportModal}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-red-600/20 transition-all hover:brightness-110 active:scale-95"

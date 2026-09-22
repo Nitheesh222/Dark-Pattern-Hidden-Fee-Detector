@@ -3,19 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DeceptiWatch - Dark Pattern & Hidden Fee Detector</title>
+    <meta name="theme-color" content="#0f172a" />
+    <title>DeceptiWatch - Dark Pattern &amp; Hidden Fee Detector</title>
     <meta name="description" content="AI-powered consumer reporting portal and community-voted index exposing deceptive UI layouts, sneaky prechecked boxes, and hidden recurring fees." />
-    <meta property="og:title" content="DeceptiWatch - Dark Pattern & Hidden Fee Detector" />
+    <meta property="og:title" content="DeceptiWatch - Dark Pattern &amp; Hidden Fee Detector" />
     <meta property="og:description" content="AI-powered consumer reporting portal and community-voted index exposing deceptive UI layouts, sneaky prechecked boxes, and hidden recurring fees." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none';" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* Skip to main content link for keyboard accessibility */
+      .skip-to-main {
+        position: absolute;
+        top: -100%;
+        left: 0;
+        z-index: 9999;
+        padding: 0.75rem 1.25rem;
+        background: #f59e0b;
+        color: #0f172a;
+        font-weight: 700;
+        font-size: 0.875rem;
+        border-radius: 0 0 0.5rem 0;
+        text-decoration: none;
+        transition: top 0.1s;
+      }
+      .skip-to-main:focus {
+        top: 0;
+        outline: 3px solid #0f172a;
+        outline-offset: 2px;
+      }
+    </style>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500/30 selection:text-amber-200">
+    <!-- Skip to main content for keyboard users -->
+    <a href="#main-content" class="skip-to-main">Skip to main content</a>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

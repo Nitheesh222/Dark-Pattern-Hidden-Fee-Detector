@@ -40,8 +40,11 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [scanStepIndex, setScanStepIndex] = useState(0);
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [publishedFeedback, setPublishedFeedback] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +64,17 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
   };
 
   const processFile = (file: File) => {
+    setFileError(null);
+    // Enforce 15MB file size limit
+    if (file.size > 15 * 1024 * 1024) {
+      setFileError('File is too large. Maximum allowed size is 15 MB.');
+      return;
+    }
+    // Verify MIME type is a real image
+    if (!file.type.startsWith('image/')) {
+      setFileError('Invalid file type. Please upload a PNG, JPG, or WebP image.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       setSelectedImage(reader.result as string);
@@ -85,9 +99,32 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
     setContextNotes(`Simulated test case for ${sample.name}: ${sample.highlightSummary}`);
   };
 
+  const validateUrl = (url: string): string | null => {
+    if (!url.trim()) return null;
+    // Block dangerous URI schemes
+    const dangerous = /^(javascript|data|vbscript|file):/i;
+    if (dangerous.test(url.trim())) {
+      return 'Invalid URL. Only http:// and https:// URLs are allowed.';
+    }
+    return null;
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSiteUrl(val);
+    setUrlError(validateUrl(val));
+  };
+
   const runAudit = async () => {
+    // Block if URL is dangerous
+    const urlValidationError = validateUrl(siteUrl);
+    if (urlValidationError) {
+      setUrlError(urlValidationError);
+      return;
+    }
     setIsScanning(true);
     setAuditResult(null);
+    setAuditError(null);
     setPublishedFeedback(false);
 
     // Simulated progress steps
@@ -109,10 +146,14 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
       });
 
       const data: AuditResult = await response.json();
+      if (!response.ok) {
+        throw new Error((data as any)?.error || `Server error: ${response.status}`);
+      }
       setAuditResult(data);
       onScanCompleted(data, activeSample || undefined);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Audit failed:', err);
+      setAuditError(err?.message || 'The audit could not be completed. Please try again.');
     } finally {
       clearInterval(interval);
       setIsScanning(false);
@@ -120,10 +161,30 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
     }
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopyFeedback(label);
-    setTimeout(() => setCopyFeedback(null), 2500);
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback(label);
+      setTimeout(() => setCopyFeedback(null), 2500);
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
+      // Graceful fallback: select text from a temporary textarea
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        setCopyFeedback(label);
+        setTimeout(() => setCopyFeedback(null), 2500);
+      } catch {
+        console.error('Clipboard fallback also failed.');
+      }
+    }
   };
 
   const handlePublishToHall = () => {
@@ -206,10 +267,19 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
 
             {/* Drag & Drop File Zone */}
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Upload checkout screenshot. Press Enter or Space to browse files, or drag and drop an image here."
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`mt-3 relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-all ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              className={`mt-3 relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-all focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-950 ${
                 selectedImage
                   ? 'border-amber-500/60 bg-amber-950/10'
                   : 'border-slate-700/80 bg-slate-950/60 hover:border-amber-500/40 hover:bg-slate-900/40'
@@ -237,8 +307,8 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
                         setSelectedImage(null);
                         setSelectedFileName(null);
                       }}
+                      aria-label="Remove uploaded image"
                       className="absolute right-2 top-2 rounded-md bg-slate-900/90 p-1.5 text-red-400 hover:bg-red-500 hover:text-white"
-                      title="Remove image"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -265,27 +335,45 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
               )}
             </div>
 
-            {/* URL & Text Fields */}
-            <div className="mt-4 space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Website URL or Merchant Name (Optional)
-                </label>
-                <div className="relative">
-                  <input
-                    id="site-url-input"
-                    type="text"
-                    value={siteUrl}
-                    onChange={(e) => setSiteUrl(e.target.value)}
-                    placeholder="e.g. flyaerosky.com/checkout or getfitpulse.io"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                  />
-                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-slate-500" />
+              {/* URL & Text Fields */}
+              <div className="mt-4 space-y-3">
+                {fileError && (
+                  <div role="alert" className="rounded-lg border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs font-semibold text-red-300">
+                    ⚠️ {fileError}
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="site-url-input" className="block text-xs font-semibold text-slate-300 mb-1">
+                    Website URL or Merchant Name (Optional)
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="site-url-input"
+                      type="text"
+                      autoComplete="off"
+                      value={siteUrl}
+                      onChange={handleUrlChange}
+                      placeholder="e.g. flyaerosky.com/checkout or getfitpulse.io"
+                      aria-invalid={!!urlError}
+                      aria-describedby={urlError ? 'url-error-msg' : undefined}
+                      className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 ${
+                        urlError
+                          ? 'border-red-500 bg-slate-950 focus:border-red-400 focus:ring-red-400'
+                          : 'border-slate-700 bg-slate-950 focus:border-amber-400 focus:ring-amber-400'
+                      }`}
+                    />
+                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-slate-500" />
+                  </div>
+                  {urlError && (
+                    <p id="url-error-msg" role="alert" className="mt-1 text-xs font-semibold text-red-400">
+                      {urlError}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label htmlFor="context-notes-input" className="block text-xs font-semibold text-slate-300 mb-1">
                   What happened? (Context or suspicious charges noticed)
                 </label>
                 <textarea
@@ -300,17 +388,18 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
             </div>
 
             {/* Launch AI Audit Action */}
-            <div className="mt-5">
-              <button
-                id="run-ai-audit-btn"
-                onClick={runAudit}
-                disabled={isScanning || (!selectedImage && !siteUrl && !activeSample)}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold shadow-lg transition-all ${
-                  isScanning || (!selectedImage && !siteUrl && !activeSample)
-                    ? 'cursor-not-allowed bg-slate-800 text-slate-500'
-                    : 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 text-slate-950 shadow-amber-500/20 hover:brightness-110 active:scale-[0.99]'
-                }`}
-              >
+              <div className="mt-5">
+                <button
+                  id="run-ai-audit-btn"
+                  onClick={runAudit}
+                  disabled={isScanning || (!selectedImage && !siteUrl && !activeSample) || !!urlError}
+                  aria-busy={isScanning}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold shadow-lg transition-all ${
+                    isScanning || (!selectedImage && !siteUrl && !activeSample) || !!urlError
+                      ? 'cursor-not-allowed bg-slate-800 text-slate-500'
+                      : 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 text-slate-950 shadow-amber-500/20 hover:brightness-110 active:scale-[0.99]'
+                  }`}
+                >
                 {isScanning ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin text-slate-950" />
@@ -323,7 +412,7 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
                   </>
                 )}
               </button>
-            </div>
+              </div>
           </div>
         </div>
 
@@ -434,6 +523,24 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
         </div>
       </div>
 
+      {/* Audit Error State */}
+      {auditError && !isScanning && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-500/40 bg-red-950/30 p-6 text-center space-y-3"
+        >
+          <AlertOctagon className="mx-auto h-8 w-8 text-red-400" />
+          <h3 className="font-bold text-red-300 text-sm">Audit Failed</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">{auditError}</p>
+          <button
+            onClick={runAudit}
+            className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-semibold text-slate-200 transition-colors"
+          >
+            Retry Scan
+          </button>
+        </div>
+      )}
+
       {/* Live Scanning Progress Overlay */}
       {isScanning && (
         <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900 to-red-950/40 p-6 text-center space-y-4 shadow-xl">
@@ -447,11 +554,18 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
             </span>
           </div>
 
-          <p className="font-mono text-xs text-slate-300 animate-pulse">
+          <p className="font-mono text-xs text-slate-300 animate-pulse" aria-live="polite">
             {scanningSteps[scanStepIndex]}
           </p>
 
-          <div className="mx-auto max-w-md h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+          <div
+            role="progressbar"
+            aria-valuenow={Math.round(((scanStepIndex + 1) / scanningSteps.length) * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Audit scan progress"
+            className="mx-auto max-w-md h-1.5 w-full bg-slate-800 rounded-full overflow-hidden"
+          >
             <div
               className="h-full bg-gradient-to-r from-amber-500 to-red-500 transition-all duration-500 rounded-full"
               style={{ width: `${((scanStepIndex + 1) / scanningSteps.length) * 100}%` }}
@@ -522,7 +636,14 @@ export const DetectorView: React.FC<DetectorViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {auditResult.violations.map((violation) => (
+              {auditResult.violations.length === 0 ? (
+                <div className="col-span-2 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-8 text-center space-y-2">
+                  <ShieldCheck className="mx-auto h-10 w-10 text-emerald-400" />
+                  <h4 className="font-bold text-emerald-300">No Violations Detected</h4>
+                  <p className="text-xs text-slate-400">The scan did not identify obvious dark pattern mechanisms in the provided content. Consider reviewing manually or scanning a fuller checkout flow.</p>
+                </div>
+              ) : (
+                auditResult.violations.map((violation) => (
                 <div
                   key={violation.id}
                   className="rounded-2xl border border-slate-800 bg-slate-950/70 p-5 space-y-3 hover:border-slate-700 transition-colors"

@@ -16,10 +16,21 @@ export default function App() {
     try {
       const saved = localStorage.getItem('deceptiwatch_reports');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Validate shape: must be a non-empty array of objects with required fields
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          typeof parsed[0] === 'object' &&
+          parsed[0] !== null &&
+          'id' in parsed[0] &&
+          'companyName' in parsed[0]
+        ) {
+          return parsed as CommunityReport[];
+        }
       }
     } catch (e) {
-      console.warn('Could not read from localStorage:', e);
+      console.warn('Could not read from localStorage, using defaults:', e);
     }
     return INITIAL_COMMUNITY_REPORTS;
   });
@@ -153,7 +164,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8" tabIndex={-1}>
         {activeTab === 'scanner' && (
           <DetectorView
             onScanCompleted={(audit) => {

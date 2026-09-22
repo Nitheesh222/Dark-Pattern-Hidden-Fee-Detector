@@ -257,13 +257,8 @@ export const HallOfShameView: React.FC<HallOfShameViewProps> = ({
                   {/* Upvote button */}
                   <button
                     onClick={() => onVote(report.id, 'up')}
-                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
-                      report.userVote === 'up'
-                        ? 'border-emerald-500 bg-emerald-950/60 text-emerald-300 ring-1 ring-emerald-400'
-                        : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
-                    }`}
-                    title="Upvote deceptive report"
-                  >
+                    aria-label={`Upvote report for ${report.companyName}, current upvotes: ${report.upvotes}`}
+                    aria-pressed={report.userVote === 'up'}
                     <ThumbsUp className="h-3.5 w-3.5" />
                     <span>{report.upvotes}</span>
                   </button>
@@ -271,12 +266,13 @@ export const HallOfShameView: React.FC<HallOfShameViewProps> = ({
                   {/* Downvote button */}
                   <button
                     onClick={() => onVote(report.id, 'down')}
+                    aria-label={`Downvote report for ${report.companyName}, current downvotes: ${report.downvotes}`}
+                    aria-pressed={report.userVote === 'down'}
                     className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-all ${
                       report.userVote === 'down'
                         ? 'border-red-500 bg-red-950/60 text-red-300 ring-1 ring-red-400'
                         : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:bg-slate-900'
                     }`}
-                    title="Downvote"
                   >
                     <ThumbsDown className="h-3.5 w-3.5" />
                   </button>
@@ -284,13 +280,8 @@ export const HallOfShameView: React.FC<HallOfShameViewProps> = ({
                   {/* Confirm Deceptive Witness */}
                   <button
                     onClick={() => onVote(report.id, 'confirm')}
-                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
-                      report.hasUserConfirmed
-                        ? 'border-amber-500 bg-amber-950/40 text-amber-300'
-                        : 'border-slate-700 bg-slate-800/80 text-slate-200 hover:border-amber-500/50 hover:bg-slate-800'
-                    }`}
-                    title="Confirm you were tricked by this too"
-                  >
+                    aria-label={`Confirm you were also tricked by ${report.companyName}. ${report.confirmedCount} people confirmed.`}
+                    aria-pressed={report.hasUserConfirmed}
                     <Users className="h-3.5 w-3.5 text-amber-400" />
                     <span className="hidden sm:inline">
                       {report.hasUserConfirmed ? 'Witnessed' : 'I was tricked too'}
@@ -301,6 +292,7 @@ export const HallOfShameView: React.FC<HallOfShameViewProps> = ({
                   {/* Full Dossier View */}
                   <button
                     onClick={() => onSelectReport(report)}
+                    aria-label={`Inspect full dossier for ${report.companyName}`}
                     className="flex items-center gap-1 rounded-xl bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-100 transition-colors"
                   >
                     <FileText className="h-3.5 w-3.5 text-cyan-400" />
